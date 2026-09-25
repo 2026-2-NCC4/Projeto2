@@ -1,0 +1,2 @@
+# Link para acessar a planilha no navegador:
+## <a href="https://edufecap-my.sharepoint.com/:x:/g/personal/gian_vieira_edu_fecap_br/IQDB9rplc4P-Q7hqlHkAbCRuAa0SZ_rRkGiuRNPsHN6UBs8?e=oMZWIb">Dicionário e Planilha de Validação de KPI's - Navegador</a>
