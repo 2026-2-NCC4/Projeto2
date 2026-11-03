@@ -11,13 +11,17 @@ Le o CSV bruto da CTI e gera:
 Uso:
   python preparar_dados.py --entrada Demonstrativo_Fecap_v3.csv --saida dados
 
-Decisoes de isolamento (sem resposta da CTI ate o momento):
+Decisoes de tratamento:
   1. Linhas sem conta: ficam em quarentena, fora da base analitica.
-  2. Passivo Circulante: muda de sinal por ano (negativo nos Anos 1-4, positivo nos 5-11).
-     Os valores sao preservados, mas os indicadores que dependem dele
-     (capital_giro_liquido, liquidez_corrente) ficam com status 'isolado'.
-  3. Ano 12: marcado com ano_isolado=True (cobertura reduzida do balanco e margem
-     liquida destoante). O dashboard o exibe apenas por opcao do usuario.
+  2. Indicadores e formulas seguem o dicionario de KPIs da Contabilidade (BeHolders).
+  3. Passivo Circulante: a base armazena passivos com sinal NEGATIVO (Total do Ativo +
+     Total do Passivo = 0). Por isso Liquidez Corrente = Ativo Circulante / (-Passivo
+     Circulante) e Capital de Giro Liquido = Ativo Circulante + Passivo Circulante.
+     Ha linhas com Passivo Circulante positivo (Anos 5-11 quase todas); elas sao
+     preservadas, nao corrigidas, e ficam sinalizadas como 'verificar'. A CTI nao
+     confirmou a convencao de sinal.
+  4. Ano 12: marcado com ano_isolado=True (cobertura reduzida do balanco e margem
+     liquida destoante). O painel o exibe com aviso de ano incompleto.
 """
 import argparse
 import json
@@ -27,17 +31,24 @@ import numpy as np
 import pandas as pd
 
 CONTAS = [
+    # Balanco
     "BAL - Ativo Circulante", "BAL - Passivo Circulante",
-    "FLU - Saldo Inicial", "FLU - Saldo Final",
+    "BAL - Total do Ativo", "BAL - Total do Passivo",
+    # Fluxo de caixa
+    "FLU - Saldo Inicial", "FLU - Saldo Final", "FLU - Geração de Caixa",
     "FLU - Investimentos", "FLU - Distribuição para Acionista",
-    "DRE - Receita", "DRE - Custos", "DRE - EBITDA", "DRE - Resultado Líquido",
+    # DRE
+    "DRE - Receita", "DRE - Custos", "DRE - Resultado Operacional",
+    "DRE - EBITDA", "DRE - Resultado Líquido",
 ]
 
 KPIS_PRINCIPAIS = [
-    "receita", "ebitda", "resultado_liquido",
-    "margem_ebitda", "margem_liquida", "variacao_caixa",
+    "receita", "resultado_operacional", "ebitda", "resultado_liquido",
+    "margem_operacional", "margem_ebitda", "margem_liquida",
+    "geracao_caixa", "margem_caixa",
 ]
-KPIS_ISOLADOS = ["capital_giro_liquido", "liquidez_corrente"]
+KPIS_VERIFICAR = ["capital_giro_liquido", "liquidez_corrente"]
+KPIS_AUXILIARES = ["custos"]  # usado pelo simulador de sensibilidade (valor com o sinal da base)
 
 ANO_ISOLADO = 12
 
@@ -72,17 +83,26 @@ def integrar(df: pd.DataFrame) -> pd.DataFrame:
 def derivar(largo: pd.DataFrame) -> pd.DataFrame:
     d = largo.copy()
     rec = d["DRE - Receita"]
+
+    # Resultados (valores informados pela CTI)
     d["receita"] = rec
+    d["custos"] = d["DRE - Custos"]
+    d["resultado_operacional"] = d["DRE - Resultado Operacional"]
     d["ebitda"] = d["DRE - EBITDA"]
     d["resultado_liquido"] = d["DRE - Resultado Líquido"]
+    d["geracao_caixa"] = d["FLU - Geração de Caixa"]
+
+    # Margens (denominador: receita > 0)
+    d["margem_operacional"] = np.where(rec > 0, d["DRE - Resultado Operacional"] / rec, np.nan)
     d["margem_ebitda"] = np.where(rec > 0, d["DRE - EBITDA"] / rec, np.nan)
     d["margem_liquida"] = np.where(rec > 0, d["DRE - Resultado Líquido"] / rec, np.nan)
-    d["variacao_caixa"] = d["FLU - Saldo Final"] - d["FLU - Saldo Inicial"]
+    d["margem_caixa"] = np.where(rec > 0, d["FLU - Geração de Caixa"] / rec, np.nan)
 
-    # Isolados: dependem do Passivo Circulante, cuja convencao de sinal nao foi confirmada
+    # Liquidez e capital de giro: a base guarda passivos com sinal negativo
     ac, pc = d["BAL - Ativo Circulante"], d["BAL - Passivo Circulante"]
-    d["capital_giro_liquido"] = ac - pc
-    d["liquidez_corrente"] = np.where(pc > 0, ac / pc, np.nan)
+    d["capital_giro_liquido"] = ac + pc
+    d["liquidez_corrente"] = np.where(pc != 0, ac / (-pc), np.nan)
+    d["passivo_conforme"] = pc < 0  # True = segue a convencao da base (passivo negativo)
 
     d["ano_isolado"] = d["ano"] == ANO_ISOLADO
     return d
@@ -103,11 +123,12 @@ def classificar_desempenho(d: pd.DataFrame):
 
 def agregar_dashboard(d: pd.DataFrame) -> pd.DataFrame:
     status = {k: "principal" for k in KPIS_PRINCIPAIS}
-    status.update({k: "isolado" for k in KPIS_ISOLADOS})
+    status.update({k: "verificar" for k in KPIS_VERIFICAR})
+    status.update({k: "auxiliar" for k in KPIS_AUXILIARES})
 
     longo = d.melt(
         id_vars=["ano", "cenario", "grupo_desempenho", "ano_isolado"],
-        value_vars=KPIS_PRINCIPAIS + KPIS_ISOLADOS,
+        value_vars=KPIS_PRINCIPAIS + KPIS_VERIFICAR + KPIS_AUXILIARES,
         var_name="kpi", value_name="valor",
     )
     todos = longo.assign(grupo_desempenho="Todos")
@@ -126,7 +147,15 @@ def agregar_dashboard(d: pd.DataFrame) -> pd.DataFrame:
         .reset_index()
     )
     agg["status_kpi"] = agg["kpi"].map(status)
-    return agg
+
+    # Cenarios que seguem a convencao da base (Passivo Circulante negativo), por grupo e ano
+    conf = d[["ano", "grupo_desempenho", "passivo_conforme"]]
+    conf = pd.concat([conf, conf.assign(grupo_desempenho="Todos")], ignore_index=True)
+    n_conf = (
+        conf.groupby(["grupo_desempenho", "ano"])["passivo_conforme"].sum()
+        .rename("n_passivo_negativo").reset_index()
+    )
+    return agg.merge(n_conf, on=["grupo_desempenho", "ano"], how="left")
 
 
 def checagens(df_raw, quarentena, largo, d, limiares):
@@ -138,6 +167,7 @@ def checagens(df_raw, quarentena, largo, d, limiares):
     log["pct_quarentena"] = round(100 * len(quarentena) / len(df_raw), 2)
     log["cenarios"] = int(largo["cenario"].nunique())
     log["anos"] = sorted(int(a) for a in largo["ano"].unique())
+    log["contas_selecionadas"] = len(CONTAS)
     log["shape_base_analitica"] = list(d.shape)
 
     esperado = log["cenarios"] * len(log["anos"])
@@ -156,18 +186,37 @@ def checagens(df_raw, quarentena, largo, d, limiares):
     if dif.max() > 1:
         raise ValueError("Saldo Final nao confere com Saldo Inicial do ano seguinte.")
 
+    # Geracao de Caixa = Saldo Final - Saldo Inicial (mesmo ano)
+    dif_g = (largo["FLU - Geração de Caixa"]
+             - (largo["FLU - Saldo Final"] - largo["FLU - Saldo Inicial"])).abs()
+    log["geracao_caixa_vs_saldos"] = {"diferenca_maxima": float(dif_g.max())}
+    if dif_g.max() > 1:
+        raise ValueError("Geracao de Caixa nao confere com Saldo Final - Saldo Inicial.")
+
+    # Balanco: Total do Ativo + Total do Passivo = 0 (passivo com sinal negativo)
+    bal = (largo["BAL - Total do Ativo"] + largo["BAL - Total do Passivo"]).abs()
+    log["balanco_ativo_mais_passivo"] = {
+        "diferenca_maxima": float(bal.max()),
+        "observacao": "Aproximadamente zero em todas as linhas: a base guarda passivos com sinal negativo.",
+    }
+
     # Achados documentados (nao corrigidos)
     pc = largo.groupby("ano")["BAL - Passivo Circulante"].apply(lambda s: round((s < 0).mean() * 100, 1))
     log["passivo_circulante_pct_negativo_por_ano"] = {int(k): float(v) for k, v in pc.items()}
+    log["passivo_circulante_linhas_positivas"] = int((largo["BAL - Passivo Circulante"] > 0).sum())
+    log["passivo_circulante_linhas_negativas"] = int((largo["BAL - Passivo Circulante"] < 0).sum())
     log["custos_pct_negativo"] = round(float((largo["DRE - Custos"] < 0).mean() * 100), 1)
 
     marg = d.groupby("ano")["margem_liquida"].mean().round(4)
     log["margem_liquida_media_por_ano"] = {int(k): float(v) for k, v in marg.items()}
+    mop = d.groupby("ano")["margem_operacional"].mean().round(4)
+    log["margem_operacional_media_por_ano"] = {int(k): float(v) for k, v in mop.items()}
+    liq = d.groupby("ano")["liquidez_corrente"].median().round(2)
+    log["liquidez_corrente_mediana_por_ano"] = {int(k): float(v) for k, v in liq.items()}
 
     grupos = d.drop_duplicates("cenario")["grupo_desempenho"].value_counts()
     log["grupos_desempenho"] = {k: int(v) for k, v in grupos.items()}
     log["limiares_resultado_acumulado"] = limiares
-    log["liquidez_corrente_calculavel"] = int(d["liquidez_corrente"].notna().sum())
     return log
 
 
