@@ -242,7 +242,7 @@ st.title("CTI - Plataforma Analítica de Planejamento Financeiro")
 st.caption("Projeção de 12 anos em 1.200 cenários simulados. Fonte: CTI (agosto/2026).")
 st.markdown(
     "**11 indicadores** · **filtros** na barra lateral (indicador, grupo de desempenho, anos, Ano 12, estatística) · "
-    "**comparação** entre Piores, Medianos e Melhores · **fórmulas, fontes e limitações** na aba *Metodologia*."
+    "**comparação** entre Piores, Medianos e Melhores · **primeira vez aqui?** veja a aba *Como usar* · **fórmulas, fontes e limitações** na aba *Metodologia*."
 )
 with st.expander("Sobre este painel"):
     st.markdown(
@@ -250,7 +250,7 @@ with st.expander("Sobre este painel"):
         "- **Indicadores:** Receita, Custos, Resultado Operacional, EBITDA, Resultado Líquido, Margem Operacional, "
         "Margem EBITDA, Margem Líquida, Geração de Caixa, Saldo Final de Caixa e Margem de Caixa. Capital de Giro, "
         "Liquidez Corrente e Endividamento sobre Ativos ficam em aba própria, com aviso, porque dependem do sinal dos passivos.\n"
-        "- **Abas:** *Painel financeiro* (margens, meta, ticket e simulação de sensibilidade), *Evolução*, "
+        "- **Abas:** *Como usar* (guia de leitura), *Painel financeiro* (margens, meta, ticket e simulação de sensibilidade), *Evolução*, "
         "*Comparação entre grupos*, *Balanço (verificar)* e *Metodologia*.\n"
         "- **Grupos de desempenho:** os cenários são divididos pelo Resultado Líquido acumulado nos 12 anos "
         "(Piores 10%, Medianos e Melhores 10%).\n"
@@ -278,10 +278,82 @@ filtrado = df[
     (df["kpi"] == kpi) & df["grupo_desempenho"].isin(grupos) & dentro_do_intervalo
 ]
 
-(aba_painel, aba_evolucao, aba_comparacao, aba_liquidez, aba_metodologia) = st.tabs(
-    ["Painel financeiro", "Evolução", "Comparação entre grupos",
+(aba_ajuda, aba_painel, aba_evolucao, aba_comparacao, aba_liquidez, aba_metodologia) = st.tabs(
+    ["Como usar", "Painel financeiro", "Evolução", "Comparação entre grupos",
      "Balanço (verificar)", "Metodologia"]
 )
+
+# ---------- Aba 0: como usar ----------
+with aba_ajuda:
+    st.header("Como usar este painel")
+    st.markdown(
+        "O painel mostra **como a empresa pode se comportar nos próximos 12 anos**, segundo 1.200 cenários "
+        "simulados pela CTI. Cada cenário é uma versão possível do futuro (com receitas, custos e caixa diferentes). "
+        "O painel resume esses 1.200 futuros em indicadores e gráficos. **Os valores são projeções, não resultados reais.**"
+    )
+
+    st.subheader("Comece por aqui: perguntas e onde responder")
+    st.markdown(
+        "| Pergunta | Aba | O que fazer |\n"
+        "|---|---|---|\n"
+        "| Qual é o retrato financeiro geral e a empresa atinge a meta de margem? | **Painel financeiro** | Escolha o grupo, veja os cartões, a tabela anual e o gráfico das margens. |\n"
+        "| Como um indicador evolui ao longo dos anos e quanto varia entre cenários? | **Evolução** | Escolha o indicador, os grupos e os anos na barra lateral. |\n"
+        "| Os cenários bons e ruins diferem em quê? | **Comparação entre grupos** | Escolha o ano e o indicador e compare Piores, Medianos e Melhores. |\n"
+        "| E se eu der desconto, subir custos ou vender mais? | **Painel financeiro** (rolando até o simulador) | Mexa nos 3 controles e veja a margem estimada. |"
+    )
+
+    st.subheader("O que cada aba faz")
+    st.markdown(
+        "- **Painel financeiro:** visão executiva. Cinco cartões com as médias dos 12 anos, tabela ano a ano com a meta de "
+        "margem operacional (60%, editável), gráfico das três margens, aviso sobre ticket médio e o **simulador de sensibilidade**.\n"
+        "- **Evolução:** 11 cartões (valor do último ano e variação contra o primeiro) e um gráfico do indicador escolhido ao longo dos anos.\n"
+        "- **Comparação entre grupos:** barras com Piores 10%, Medianos, Melhores 10% e Todos em um ano, mais uma tabela com todos os indicadores.\n"
+        "- **Balanço (verificar):** Capital de Giro, Liquidez Corrente e Endividamento. Ficam separados porque dependem do sinal dos passivos, "
+        "que a CTI ainda não confirmou. **Leia o aviso da aba antes de interpretar.**\n"
+        "- **Metodologia:** fonte dos dados, fórmulas, como ler o painel, limitações e verificações feitas."
+    )
+
+    st.subheader("Quais controles valem em cada aba")
+    st.markdown(
+        "A barra lateral não age em todas as abas. Esta é a principal fonte de confusão:\n\n"
+        "| Controle | Painel financeiro | Evolução | Comparação | Balanço |\n"
+        "|---|:---:|:---:|:---:|:---:|\n"
+        "| Indicador (barra lateral) | não | sim | sim | não (tem o próprio) |\n"
+        "| Grupo de desempenho (barra lateral) | não (tem o próprio) | sim | não (mostra todos) | sim |\n"
+        "| Intervalo de anos | não (usa os 12 anos) | sim | não (tem o próprio seletor de ano) | sim |\n"
+        "| Incluir Ano 12 | não | sim | libera o Ano 12 no seletor | sim |\n"
+        "| Média ou mediana | não (usa média) | sim | sim | tem o próprio |"
+    )
+
+    st.subheader("Como ler os termos")
+    st.markdown(
+        "- **Grupos de desempenho:** os cenários são ordenados pelo Resultado Líquido somado nos 12 anos. "
+        "*Piores 10%* são os 133 mais baixos, *Melhores 10%* os 120 mais altos, *Medianos* os 947 do meio e *Todos* os 1.200. "
+        "Um cenário não muda de grupo de um ano para o outro.\n"
+        "- **Média e mediana:** a média é a soma dividida pelo número de cenários; a mediana é o valor do meio e resiste a valores extremos. "
+        "Em dúvida, use a mediana.\n"
+        "- **Faixa sombreada (P10 a P90):** onde ficam 80% dos cenários do grupo. Quanto mais larga, maior a incerteza.\n"
+        "- **Margem:** o indicador dividido pela Receita. Margem operacional de 60% significa que, de cada R$ 100 de receita, sobram R$ 60 de resultado operacional.\n"
+        "- **p.p.:** pontos percentuais, a diferença entre duas porcentagens (de 60% para 62% são 2 p.p.).\n"
+        "- **Custos negativos:** a base guarda custos com sinal negativo. Um custo \"menor\" (mais negativo) é um custo maior em valor absoluto.\n"
+        "- **bi:** bilhões de reais."
+    )
+
+    st.subheader("Como usar o simulador de sensibilidade")
+    st.markdown(
+        "1. Escolha o grupo de cenários no topo do *Painel financeiro*.\n"
+        "2. Ajuste **desconto** (reduz a receita), **aumento de custos** e **variação de volume** (altera receita e custos).\n"
+        "3. Leia os quatro cartões: receita ajustada, custos ajustados, resultado operacional estimado e margem operacional estimada, com a comparação contra a base.\n"
+        "4. É uma aproximação sobre médias, não uma projeção oficial. Com tudo zerado, a estimativa fica um pouco acima da base por diferença de agregação."
+    )
+
+    st.subheader("Cuidados na leitura")
+    st.warning(
+        "- **Ano 12 é incompleto** e fica fora por padrão. Marque *Incluir Ano 12* só se quiser vê-lo, com cautela.\n"
+        "- **Balanço (verificar):** Liquidez e Capital de Giro dependem do sinal dos passivos; leia o aviso da aba.\n"
+        "- **Ticket médio** não pode ser calculado: a base não tem quantidade de vendas.\n"
+        "- Os valores são **simulados**."
+    )
 
 # ---------- Aba 1: painel financeiro (margens, meta, ticket, sensibilidade) ----------
 with aba_painel:
