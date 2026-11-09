@@ -15,12 +15,10 @@
 
 | Disciplina | Entrega 1 | Entrega 2 |  
 | :-------: | :------: | :-------: |
-| Análise Inferencial de Dados | <a href ="https://github.com/2026-2-NCC4/Projeto2/blob/main/documentos/Entrega%201/Análise%20Inferencial%20de%20Dados/Análise%20Inferencial%20de%20Dados%202026-2.docx">Análise dos Dados</a> | <a href ="https://github.com/2026-2-NCC4/Projeto2">X</a> |   
-| Contabilidade e Finanças | <a href ="https://github.com/2026-2-NCC4/Projeto2/tree/main/documentos/Entrega%201/Contabilidade">Dicionário e Planilha</a> | <a href ="https://github.com/2026-2-NCC4/Projeto2">X</a> |    
-| Engenharia de Software | <a href ="https://github.com/2026-2-NCC4/Projeto2">X</a> | <a href= "https://github.com/2026-1-NCC3/Projeto2/tree/main/src/Entrega%202/Programa%C3%A7%C3%A3o%20para%20Dispositivos%20M%C3%B3veis">X</a> |  
-| Projeto Interdisciplinar | <a href ="https://github.com/2026-2-NCC4/Projeto2">X</a>| <a href= "https://github.com/2026-2-NCC4/Projeto2">X </a> |   
-<br/>
-
+| Análise Inferencial de Dados | <a href ="https://github.com/2026-2-NCC4/Projeto2/tree/main/documentos/Entrega%201/An%C3%A1lise%20Inferencial%20de%20Dados">Análise dos Dados</a> | <a href ="https://github.com/2026-2-NCC4/Projeto2/tree/main/documentos/Entrega%202/An%C3%A1lise%20Inferencial%20de%20Dados">Análise de Regressão</a> |   
+| Contabilidade e Finanças | <a href ="https://github.com/2026-2-NCC4/Projeto2/tree/main/documentos/Entrega%201/Contabilidade">Dicionário e Planilha</a> | <a href ="https://github.com/2026-2-NCC4/Projeto2/tree/main/documentos/Entrega%202/Contabilidade">Painél Financeiro</a> |    
+| Engenharia de Software | <a href ="https://github.com/2026-2-NCC4/Projeto2/tree/main/documentos/Entrega%201/ES%20e%20ML">Análise de Requisitos</a> | <a href= "https://github.com/2026-2-NCC4/Projeto2/tree/main/documentos/Entrega%202/Engenharia%20de%20Software">UML</a> | 
+| Projeto Interdisciplinar | <a href ="https://github.com/2026-2-NCC4/Projeto2/tree/main/documentos/Entrega%201/Projeto%20Interdisciplinar">Script do Colab</a>| <a href= "https://github.com/2026-2-NCC4/Projeto2/tree/main/documentos/Entrega%202/Projeto%20Interdisciplinar">Dashboard Publicado</a> |   
 
 # Descrição
 Projeto desenvolvido pelo grupo BeHolders, com o objetivo de transformar dados financeiros em informações mais claras e úteis para apoiar a tomada de decisões.
@@ -35,50 +33,22 @@ A proposta é transformar dados brutos em informações que possam ser facilment
 
 ## 🛠 Estrutura de Pastas
 
+```text
+Projeto2
+│-->Documentos
+│   │-->Entrega 1
+│   │   │-->Análise Inferencial de Dados
+│   │   │-->Contabilidade e Finanças
+│   │   │-->Engenharia de Software e Arquitetura de Sistemas
+│   │   │-->Projeto Interdisciplinar Ciência de Dados
+│   │-->Entrega 2
+│   │   │-->Análise Inferencial de Dados
+│   │   │-->Contabilidade e Finanças
+│   │   │-->Engenharia de Software e Arquitetura de Sistemas
+│   │   │-->Projeto Interdisciplinar Ciência de Dados
+│   │-->README.md (declaração de uso de inteligência artificial)
+│README.md
 ```
-.
-.
-.
-.
-.
-.
-.
-```
-
-<br/>
-
-## 🛠 Instalação
-
-.<br>
-.<br>
-.<br>
-.<br>
-.<br>
-.<br/>
-
-## 💻 Configuração para Desenvolvimento
-
-### Pré-requisitos
-.<br/>
-.<br>
-.<br>
-.<br>
-.<br/>
-
-### Passo-a-passo de execução local
-
-<br>.
-<br>.
-<br>.
-<br>.
-<br>.
-<br>.
-<br>.
-
-<br/>
-
-<br/>
-
 ## 📋 Licença/License
 <a href="https://github.com/2026-2-NCC4/Projeto2">BeHolders</a> © 2026 by <a href="https://github.com/2026-2-NCC4/Projeto2">Felipe Lázaro Mathey</a>, <a href="https://github.com/GDiniz12">Gabriel Vazquez Mamede Diniz</a>, <a href="https://github.com/GianLemes">Gian Carlos Lemes Vieira</a>, <a href="https://github.com/leticia19silva">Leticia Rodrigues da Silva</a>, <a href="https://github.com/saidsales">Said Sales de Sousa</a> - <a href="">FECAP</a> is licensed under <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a><img src="https://mirrors.creativecommons.org/presskit/icons/cc.svg" alt="" style="max-width: .5em;max-height:1em;margin-left: .2em;"> <img src="https://mirrors.creativecommons.org/presskit/icons/by.svg" alt="" style="max-width: 0.5em;max-height:1em;margin-left: .2em;">
 
