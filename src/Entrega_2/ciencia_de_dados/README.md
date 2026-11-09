@@ -10,7 +10,7 @@ O painel apoia decisões estratégicas e operacionais a partir da projeção fin
 
 ## 1. O que o painel mostra
 
-**Indicadores (9):** Receita, Resultado Operacional, EBITDA, Resultado Líquido, Margem Operacional, Margem EBITDA, Margem Líquida, Geração de Caixa e Margem de Caixa. Capital de Giro Líquido e Liquidez Corrente ficam em aba própria, marcados como *verificar* (ver Limitações).
+**Indicadores (11):** Receita, Custos, Resultado Operacional, EBITDA, Resultado Líquido, Margem Operacional, Margem EBITDA, Margem Líquida, Geração de Caixa, Saldo Final de Caixa e Margem de Caixa. Capital de Giro Líquido, Liquidez Corrente e Endividamento sobre Ativos ficam em aba própria, marcados como *verificar* (ver Limitações).
 
 **Filtros (barra lateral):** indicador, grupo de desempenho, intervalo de anos, inclusão do Ano 12 e estatística (média ou mediana).
 
@@ -19,9 +19,9 @@ O painel apoia decisões estratégicas e operacionais a partir da projeção fin
 | Aba | Conteúdo |
 |---|---|
 | Painel financeiro | Cartões com as médias dos 12 anos, tabela anual com meta de margem operacional (60%, editável), gráfico das margens, nota sobre ticket médio e simulador de sensibilidade (desconto, custos e volume). |
-| Evolução | Cartões dos 9 indicadores e gráfico por ano com faixa P10 a P90 dos cenários. |
+| Evolução | Cartões dos 11 indicadores e gráfico por ano com faixa P10 a P90 dos cenários. |
 | Comparação entre grupos | Barras de Piores 10%, Medianos, Melhores 10% e Todos em um ano escolhido, mais tabela com todos os indicadores. |
-| Liquidez e Capital de Giro | Indicadores que dependem do sinal do Passivo Circulante, com aviso e contagem de cenários que seguem a regra da base. |
+| Balanço (verificar) | Capital de Giro, Liquidez Corrente e Endividamento sobre Ativos, que dependem do sinal dos passivos, com aviso e contagem de cenários que seguem a regra da base. |
 | Metodologia | Fonte, fórmulas, leitura do painel, limitações e verificações. |
 
 **Grupos de desempenho:** cada cenário é classificado pelo Resultado Líquido acumulado nos 12 anos. *Piores 10%* (133 cenários) ficam abaixo de R$ 38,57 bi; *Melhores 10%* (120) ficam acima de R$ 41,02 bi; *Medianos* (947) ficam entre os dois. O cenário é uma trajetória, então não muda de grupo de um ano para o outro.
@@ -64,7 +64,7 @@ No Windows, se `pip` ou `streamlit` não forem reconhecidos, use `py -m pip inst
 python preparar_dados.py --entrada Demonstrativo_Fecap_v3.csv --saida dados
 ```
 
-Gera `dados/staging/linhas_nao_identificadas.csv` (quarentena), `dados/processed/base_analitica.csv` (14.400 linhas, uso local), `dados/processed/base_dashboard.csv` (576 linhas, alimenta o painel) e `dados/processed/log_qualidade.json` (checagens).
+Gera `dados/staging/linhas_nao_identificadas.csv` (quarentena), `dados/processed/base_analitica.csv` (14.400 linhas, uso local), `dados/processed/base_dashboard.csv` (672 linhas, alimenta o painel) e `dados/processed/log_qualidade.json` (checagens).
 
 **Atualizar o painel publicado:** ao alterar a base ou o código no GitHub, o app se atualiza sozinho. Se continuar mostrando a versão antiga, use *Manage app* e *Reboot app* na Streamlit.
 
@@ -84,6 +84,7 @@ Gera `dados/staging/linhas_nao_identificadas.csv` (quarentena), `dados/processed
 | Indicador | Fórmula | Unidade |
 |---|---|---|
 | Receita | `DRE - Receita` | R$ |
+| Custos | `DRE - Custos` (a base guarda os custos com sinal negativo) | R$ |
 | Resultado Operacional | `DRE - Resultado Operacional` (Receita + Tributos + Custos + Depreciação/Amortização) | R$ |
 | EBITDA | `DRE - EBITDA` | R$ |
 | Resultado Líquido | `DRE - Resultado Líquido` | R$ |
@@ -91,9 +92,11 @@ Gera `dados/staging/linhas_nao_identificadas.csv` (quarentena), `dados/processed
 | Margem EBITDA | EBITDA ÷ Receita (vazio se Receita ≤ 0) | % |
 | Margem Líquida | Resultado Líquido ÷ Receita (vazio se Receita ≤ 0) | % |
 | Geração de Caixa | `FLU - Geração de Caixa` (= Saldo Final − Saldo Inicial) | R$ |
+| Saldo Final de Caixa | `FLU - Saldo Final` (= Saldo Inicial + Geração de Caixa) | R$ |
 | Margem de Caixa | Geração de Caixa ÷ Receita (vazio se Receita ≤ 0) | % |
 | Capital de Giro Líquido (*verificar*) | Ativo Circulante + Passivo Circulante (passivo armazenado com sinal negativo) | R$ |
 | Liquidez Corrente (*verificar*) | Ativo Circulante ÷ (− Passivo Circulante) | x |
+| Endividamento sobre Ativos (*verificar*) | (− Total do Passivo) ÷ Total do Ativo (vazio se Total do Ativo = 0) | % |
 
 **Estatísticas:** a base do painel traz, por indicador, grupo e ano, a média, a mediana, o P10 e o P90 entre os cenários, além do número de cenários válidos.
 
@@ -122,6 +125,7 @@ Gera `dados/staging/linhas_nao_identificadas.csv` (quarentena), `dados/processed
 
 - **Ano 12 incompleto:** o balanço tem cobertura reduzida e a margem líquida destoa dos demais anos (a Margem de Caixa também). Ele fica fora por padrão nos filtros e é sinalizado no Painel financeiro.
 - **Sinal do Passivo Circulante:** a base guarda passivos com sinal negativo, mas o Passivo Circulante fica positivo em quase todos os cenários dos Anos 5 a 11 (e em cerca de metade no Ano 12). A CTI não confirmou a convenção, então Liquidez Corrente e Capital de Giro ficam em aba própria, marcados como *verificar*, com os valores originais preservados e sem correção. A Liquidez Corrente tem valores extremos (de −31.263 a 1.488); use a mediana.
+- **Endividamento sobre Ativos:** fica em cerca de 100% em todas as linhas, porque Total do Ativo + Total do Passivo = 0, e 714 das 14.400 linhas têm Total do Ativo negativo. Por isso também é marcado como *verificar* e não diferencia cenários.
 - **Ticket médio:** não calculável, pois a base não tem quantidade de vendas, pedidos ou transações.
 - **Margens muito altas** (EBITDA entre 75% e 97% da receita) são características das projeções e não foram validadas com a CTI.
 - **Geração de Caixa** inclui investimentos e distribuições aos acionistas; não é geração operacional de caixa. Não há abertura da DFC por atividade, nem dados para Necessidade de Capital de Giro ou DVA.
