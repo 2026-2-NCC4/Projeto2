@@ -14,6 +14,7 @@ REPOSITORIO = "https://github.com/2026-2-NCC4/Projeto2"
 # Indicadores principais (barra lateral, cartões, gráficos)
 NOMES_KPI = {
     "receita": "Receita",
+    "custos": "Custos",
     "resultado_operacional": "Resultado Operacional",
     "ebitda": "EBITDA",
     "resultado_liquido": "Resultado Líquido",
@@ -21,12 +22,14 @@ NOMES_KPI = {
     "margem_ebitda": "Margem EBITDA",
     "margem_liquida": "Margem Líquida",
     "geracao_caixa": "Geração de Caixa",
+    "saldo_final_caixa": "Saldo Final de Caixa",
     "margem_caixa": "Margem de Caixa",
 }
 # Indicadores que dependem do sinal do Passivo Circulante (aba própria, com aviso)
 NOMES_VERIFICAR = {
     "capital_giro_liquido": "Capital de Giro Líquido",
     "liquidez_corrente": "Liquidez Corrente",
+    "endividamento_ativos": "Endividamento sobre Ativos",
 }
 NOMES_TODOS = {**NOMES_KPI, **NOMES_VERIFICAR}
 
@@ -41,6 +44,8 @@ UNIDADES = {
     "geracao_caixa": (1e9, "R$ bi", ".2f"),
     "capital_giro_liquido": (1e9, "R$ bi", ".2f"),
     "custos": (1e9, "R$ bi", ".2f"),
+    "saldo_final_caixa": (1e9, "R$ bi", ".2f"),
+    "endividamento_ativos": (0.01, "%", ".1f"),
     "margem_operacional": (0.01, "%", ".1f"),
     "margem_ebitda": (0.01, "%", ".1f"),
     "margem_liquida": (0.01, "%", ".1f"),
@@ -62,6 +67,7 @@ CORES_MARGENS = {
 
 FORMULAS = [
     ("Receita", "Valor informado na DRE", "R$ bi", "DRE - Receita"),
+    ("Custos", "Valor informado na DRE (a base guarda os custos com sinal negativo)", "R$ bi", "DRE - Custos"),
     ("Resultado Operacional", "Valor informado na DRE (Receita + Tributos + Custos + Depreciação/Amortização)", "R$ bi", "DRE - Resultado Operacional"),
     ("EBITDA", "Valor informado na DRE", "R$ bi", "DRE - EBITDA"),
     ("Resultado Líquido", "Valor informado na DRE", "R$ bi", "DRE - Resultado Líquido"),
@@ -69,14 +75,17 @@ FORMULAS = [
     ("Margem EBITDA", "EBITDA ÷ Receita (vazio se Receita ≤ 0)", "%", "DRE - EBITDA e DRE - Receita"),
     ("Margem Líquida", "Resultado Líquido ÷ Receita (vazio se Receita ≤ 0)", "%", "DRE - Resultado Líquido e DRE - Receita"),
     ("Geração de Caixa", "Valor informado no fluxo (= Saldo Final − Saldo Inicial)", "R$ bi", "FLU - Geração de Caixa"),
+    ("Saldo Final de Caixa", "Valor informado no fluxo (= Saldo Inicial + Geração de Caixa)", "R$ bi", "FLU - Saldo Final"),
     ("Margem de Caixa", "Geração de Caixa ÷ Receita (vazio se Receita ≤ 0)", "%", "FLU - Geração de Caixa e DRE - Receita"),
     ("Capital de Giro Líquido (verificar)", "Ativo Circulante + Passivo Circulante (passivo armazenado com sinal negativo)", "R$ bi", "BAL - Ativo Circulante e BAL - Passivo Circulante"),
     ("Liquidez Corrente (verificar)", "Ativo Circulante ÷ (− Passivo Circulante)", "x", "BAL - Ativo Circulante e BAL - Passivo Circulante"),
+    ("Endividamento sobre Ativos (verificar)", "(− Total do Passivo) ÷ Total do Ativo (vazio se Total do Ativo = 0)", "%", "BAL - Total do Passivo e BAL - Total do Ativo"),
 ]
 
 
 @st.cache_data
-def carregar_dados() -> pd.DataFrame:
+def carregar_dados(versao_do_arquivo: float) -> pd.DataFrame:
+    # O argumento muda quando o arquivo é atualizado, o que renova o cache automaticamente.
     return pd.read_csv(CAMINHO)
 
 
@@ -137,6 +146,8 @@ def montar_grafico(dados, coluna, kpi, estatistica, mostrar_ano12):
             x=12, line_dash="dash", line_color="#888",
             annotation_text="Ano 12 incompleto", annotation_position="top left",
         )
+    if kpi == "endividamento_ativos":  # valores quase constantes: evita ampliar ruído numérico
+        fig.update_yaxes(range=[0, 120])
     fig.update_layout(
         title=f"{NOMES_TODOS[kpi]}: {estatistica.lower()} por ano (faixa = P10 a P90 dos cenários)",
         xaxis=dict(title="Ano", dtick=1),
@@ -209,33 +220,38 @@ def cartao(coluna_estat, kpi_id, base):
     v0, v1 = primeiro[coluna_estat], ultimo[coluna_estat]
     if unidade == "%":
         valor = f"{br(v1 / fator, 1)}%"
-        delta = f"{br((v1 - v0) / fator, 1)} p.p."
+        delta_num = (v1 - v0) / fator
+        delta = f"{br(delta_num, 1)} p.p."
     elif kpi_id == "geracao_caixa":  # pode mudar de sinal: variação absoluta
         valor = f"R$ {br(v1 / fator, 2)} bi"
-        delta = f"{br((v1 - v0) / fator, 2)} bi"
+        delta_num = (v1 - v0) / fator
+        delta = f"{br(delta_num, 2)} bi"
     else:
         valor = f"R$ {br(v1 / fator, 2)} bi"
-        delta = f"{br((v1 / v0 - 1) * 100, 1)}%"
-    sinal = "+" if (v1 - v0) > 0 else ""
-    st.metric(NOMES_KPI[kpi_id], valor, f"{sinal}{delta}")
+        delta_num = (v1 / v0 - 1) * 100
+        delta = f"{br(delta_num, 1)}%"
+    sinal = "+" if delta_num > 0 else ""
+    # Custos: menor custo absoluto não é necessariamente melhor; delta em cor neutra
+    st.metric(NOMES_KPI[kpi_id], valor, f"{sinal}{delta}",
+              delta_color="off" if kpi_id == "custos" else "normal")
 
 
-df = carregar_dados()
+df = carregar_dados(CAMINHO.stat().st_mtime)
 
 st.title("CTI - Plataforma Analítica de Planejamento Financeiro")
 st.caption("Projeção de 12 anos em 1.200 cenários simulados. Fonte: CTI (agosto/2026).")
 st.markdown(
-    "**9 indicadores** · **filtros** na barra lateral (indicador, grupo de desempenho, anos, Ano 12, estatística) · "
+    "**11 indicadores** · **filtros** na barra lateral (indicador, grupo de desempenho, anos, Ano 12, estatística) · "
     "**comparação** entre Piores, Medianos e Melhores · **fórmulas, fontes e limitações** na aba *Metodologia*."
 )
 with st.expander("Sobre este painel"):
     st.markdown(
         "- **Objetivo:** apoiar decisões estratégicas e operacionais a partir da projeção financeira da CTI.\n"
-        "- **Indicadores:** Receita, Resultado Operacional, EBITDA, Resultado Líquido, Margem Operacional, Margem EBITDA, "
-        "Margem Líquida, Geração de Caixa e Margem de Caixa. Capital de Giro e Liquidez Corrente ficam em aba própria, "
-        "com aviso, porque dependem do sinal do Passivo Circulante.\n"
+        "- **Indicadores:** Receita, Custos, Resultado Operacional, EBITDA, Resultado Líquido, Margem Operacional, "
+        "Margem EBITDA, Margem Líquida, Geração de Caixa, Saldo Final de Caixa e Margem de Caixa. Capital de Giro, "
+        "Liquidez Corrente e Endividamento sobre Ativos ficam em aba própria, com aviso, porque dependem do sinal dos passivos.\n"
         "- **Abas:** *Painel financeiro* (margens, meta, ticket e simulação de sensibilidade), *Evolução*, "
-        "*Comparação entre grupos*, *Liquidez e Capital de Giro* e *Metodologia*.\n"
+        "*Comparação entre grupos*, *Balanço (verificar)* e *Metodologia*.\n"
         "- **Grupos de desempenho:** os cenários são divididos pelo Resultado Líquido acumulado nos 12 anos "
         "(Piores 10%, Medianos e Melhores 10%).\n"
         "- **Atenção:** valores são projeções simuladas, e o Ano 12 é incompleto."
@@ -264,7 +280,7 @@ filtrado = df[
 
 (aba_painel, aba_evolucao, aba_comparacao, aba_liquidez, aba_metodologia) = st.tabs(
     ["Painel financeiro", "Evolução", "Comparação entre grupos",
-     "Liquidez e Capital de Giro", "Metodologia"]
+     "Balanço (verificar)", "Metodologia"]
 )
 
 # ---------- Aba 1: painel financeiro (margens, meta, ticket, sensibilidade) ----------
@@ -298,12 +314,15 @@ with aba_painel:
     tabela = pd.DataFrame({
         "Ano": [f"Ano {a}" + (" (incompleto)" if a == 12 else "") for a in s_mop.index],
         "Receita (R$ bi)": serie_media(base_painel, "receita") / 1e9,
+        "Custos (R$ bi)": serie_media(base_painel, "custos") / 1e9,
         "Resultado operacional (R$ bi)": serie_media(base_painel, "resultado_operacional") / 1e9,
         "EBITDA (R$ bi)": serie_media(base_painel, "ebitda") / 1e9,
         "Resultado líquido (R$ bi)": serie_media(base_painel, "resultado_liquido") / 1e9,
         "Margem operacional (%)": s_mop * 100,
         "Margem EBITDA (%)": serie_media(base_painel, "margem_ebitda") * 100,
         "Margem líquida (%)": serie_media(base_painel, "margem_liquida") * 100,
+        "Geração de caixa (R$ bi)": serie_media(base_painel, "geracao_caixa") / 1e9,
+        "Saldo final de caixa (R$ bi)": serie_media(base_painel, "saldo_final_caixa") / 1e9,
         "Margem de caixa (%)": serie_media(base_painel, "margem_caixa") * 100,
         "Meta (%)": meta,
         "Situação da meta": ["Meta atingida" if x else "Abaixo da meta" for x in atingida],
@@ -428,7 +447,7 @@ with aba_comparacao:
         linhas[NOMES_KPI[k]] = {g: fmt_valor(k, d[g]) for g in GRUPOS if g in d.index}
     st.dataframe(pd.DataFrame(linhas).T[GRUPOS])
 
-# ---------- Aba 4: liquidez e capital de giro (dependem do sinal do Passivo) ----------
+# ---------- Aba 4: balanço (indicadores que dependem do sinal dos passivos) ----------
 with aba_liquidez:
     st.warning(
         "**Verificar antes de interpretar.** A base guarda os passivos com sinal negativo "
@@ -444,7 +463,7 @@ with aba_liquidez:
         format_func=lambda k: NOMES_VERIFICAR[k], horizontal=True,
     )
     estat_iso = dir_.radio(
-        "Estatística (aba de liquidez)", ["Mediana", "Média"], horizontal=True,
+        "Estatística (aba de balanço)", ["Mediana", "Média"], horizontal=True,
         help="Prefira a mediana: a média da Liquidez Corrente é distorcida por valores extremos "
              "(de −31.263 a 1.488 na base).",
     )
@@ -460,14 +479,22 @@ with aba_liquidez:
             montar_grafico(dados_iso, col_iso, kpi_iso, estat_iso, incluir_ano12),
             width="stretch",
         )
-        st.subheader("Cenários que seguem a regra da base (Passivo Circulante negativo)")
-        tabela_n = dados_iso.pivot(index="ano", columns="grupo_desempenho", values="n_passivo_negativo")
-        st.dataframe(tabela_n[[g for g in GRUPOS if g in tabela_n.columns]])
-        st.caption(
-            "Número de cenários com Passivo Circulante negativo em cada ano. Cada grupo tem, no total, "
-            "1.200 (Todos), 133 (Piores), 947 (Medianos) e 120 (Melhores) cenários. "
-            "Onde o número é baixo, o indicador está marcado como *verificar*."
-        )
+        if kpi_iso == "endividamento_ativos":
+            st.info(
+                "**Endividamento sobre Ativos = (− Total do Passivo) ÷ Total do Ativo.** Como o Total do Ativo "
+                "e o Total do Passivo se anulam na base, o indicador fica em cerca de 100% em todos os cenários e anos, "
+                "então não diferencia cenários. Além disso, 714 das 14.400 linhas têm Total do Ativo negativo "
+                "e precisam ser analisadas à parte."
+            )
+        else:
+            st.subheader("Cenários que seguem a regra da base (Passivo Circulante negativo)")
+            tabela_n = dados_iso.pivot(index="ano", columns="grupo_desempenho", values="n_passivo_negativo")
+            st.dataframe(tabela_n[[g for g in GRUPOS if g in tabela_n.columns]])
+            st.caption(
+                "Número de cenários com Passivo Circulante negativo em cada ano. Cada grupo tem, no total, "
+                "1.200 (Todos), 133 (Piores), 947 (Medianos) e 120 (Melhores) cenários. "
+                "Onde o número é baixo, o indicador está marcado como *verificar*."
+            )
 
 # ---------- Aba 5: metodologia ----------
 with aba_metodologia:
@@ -512,11 +539,14 @@ with aba_metodologia:
         "- **Sinal do Passivo Circulante:** a base guarda passivos com sinal negativo, mas o Passivo Circulante fica positivo "
         "em quase todos os cenários dos Anos 5 a 11. A CTI não confirmou a convenção, então Liquidez Corrente e Capital de Giro "
         "ficam em aba própria, marcados como *verificar*, com os valores preservados.\n"
+        "- **Endividamento sobre Ativos:** fica em cerca de 100% em todas as linhas, porque Total do Ativo + Total do Passivo = 0, "
+        "e 714 linhas têm Total do Ativo negativo. Por isso também é marcado como *verificar* e não diferencia cenários.\n"
         "- **Ticket médio:** não calculável, pois a base não tem quantidade de vendas ou transações.\n"
         "- **Linhas sem nome de conta:** 43.200 das 1.002.000 linhas do arquivo original (4,31%) ficaram em quarentena e fora da análise.\n"
         "- **Margens muito altas** (EBITDA entre 75% e 97% da receita) são características das projeções e não foram validadas com a CTI.\n"
         "- **Geração de Caixa** inclui investimentos e distribuições aos acionistas; não é geração operacional de caixa. "
-        "Não há abertura da DFC por atividade, nem dados para Necessidade de Capital de Giro ou DVA."
+        "Não há abertura da DFC por atividade, nem dados para Necessidade de Capital de Giro ou DVA.\n"
+        "- **Custos** aparecem com sinal negativo, como na base; para avaliar eficiência, compare-os com a Receita."
     )
 
     st.subheader("Verificações realizadas")

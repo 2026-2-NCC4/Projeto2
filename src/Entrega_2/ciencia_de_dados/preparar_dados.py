@@ -14,6 +14,7 @@ Uso:
 Decisoes de tratamento:
   1. Linhas sem conta: ficam em quarentena, fora da base analitica.
   2. Indicadores e formulas seguem o dicionario de KPIs da Contabilidade (BeHolders).
+     Custos mantem o sinal da base (negativo).
   3. Passivo Circulante: a base armazena passivos com sinal NEGATIVO (Total do Ativo +
      Total do Passivo = 0). Por isso Liquidez Corrente = Ativo Circulante / (-Passivo
      Circulante) e Capital de Giro Liquido = Ativo Circulante + Passivo Circulante.
@@ -43,12 +44,13 @@ CONTAS = [
 ]
 
 KPIS_PRINCIPAIS = [
-    "receita", "resultado_operacional", "ebitda", "resultado_liquido",
+    "receita", "custos", "resultado_operacional", "ebitda", "resultado_liquido",
     "margem_operacional", "margem_ebitda", "margem_liquida",
-    "geracao_caixa", "margem_caixa",
+    "geracao_caixa", "saldo_final_caixa", "margem_caixa",
 ]
-KPIS_VERIFICAR = ["capital_giro_liquido", "liquidez_corrente"]
-KPIS_AUXILIARES = ["custos"]  # usado pelo simulador de sensibilidade (valor com o sinal da base)
+# Dependem do sinal dos passivos (convencao da base nao confirmada pela CTI)
+KPIS_VERIFICAR = ["capital_giro_liquido", "liquidez_corrente", "endividamento_ativos"]
+KPIS_AUXILIARES = []
 
 ANO_ISOLADO = 12
 
@@ -91,6 +93,7 @@ def derivar(largo: pd.DataFrame) -> pd.DataFrame:
     d["ebitda"] = d["DRE - EBITDA"]
     d["resultado_liquido"] = d["DRE - Resultado Líquido"]
     d["geracao_caixa"] = d["FLU - Geração de Caixa"]
+    d["saldo_final_caixa"] = d["FLU - Saldo Final"]
 
     # Margens (denominador: receita > 0)
     d["margem_operacional"] = np.where(rec > 0, d["DRE - Resultado Operacional"] / rec, np.nan)
@@ -102,6 +105,8 @@ def derivar(largo: pd.DataFrame) -> pd.DataFrame:
     ac, pc = d["BAL - Ativo Circulante"], d["BAL - Passivo Circulante"]
     d["capital_giro_liquido"] = ac + pc
     d["liquidez_corrente"] = np.where(pc != 0, ac / (-pc), np.nan)
+    ativo_total, passivo_total = d["BAL - Total do Ativo"], d["BAL - Total do Passivo"]
+    d["endividamento_ativos"] = np.where(ativo_total != 0, -passivo_total / ativo_total, np.nan)
     d["passivo_conforme"] = pc < 0  # True = segue a convencao da base (passivo negativo)
 
     d["ano_isolado"] = d["ano"] == ANO_ISOLADO
@@ -205,6 +210,7 @@ def checagens(df_raw, quarentena, largo, d, limiares):
     log["passivo_circulante_pct_negativo_por_ano"] = {int(k): float(v) for k, v in pc.items()}
     log["passivo_circulante_linhas_positivas"] = int((largo["BAL - Passivo Circulante"] > 0).sum())
     log["passivo_circulante_linhas_negativas"] = int((largo["BAL - Passivo Circulante"] < 0).sum())
+    log["ativo_total_negativo_linhas"] = int((largo["BAL - Total do Ativo"] < 0).sum())
     log["custos_pct_negativo"] = round(float((largo["DRE - Custos"] < 0).mean() * 100), 1)
 
     marg = d.groupby("ano")["margem_liquida"].mean().round(4)
