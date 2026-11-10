@@ -12,7 +12,7 @@ Este documento reúne o uso de IA declarado pelos integrantes do grupo, conforme
 | Gian Carlos Lemes Vieira | Contabilidade e Finanças (Entrega 2) | ChatGPT (GPT-6) | `Ficha_de_Declaracao_Uso_IA_-_FECAP_-_Gian.docx` |
 | Said Sales de Sousa | Estatística Inferencial (Entrega 2) | Claude (Sonnet 5.5) | `Ficha_de_Declaracao_Uso_IA_-_FECAP_-_Said.docx` |
 | Gabriel Vazquez Mamede Diniz | Engenharia de Software | Gemini (3.8) | `Ficha_de_Declara__o_de_Uso_de_IA.docx` |
-
+| Felipe Lázaro Mathey | Engenharia de Software | ChatGPT (GPT-6) | `Ficha_de_Declaracao_Uso_IA_-_FECAP_-_Felipe.docx` |
 ---
 
 ## 2. Letícia Rodrigues da Silva: Ciência de Dados
@@ -66,8 +66,19 @@ Este documento reúne o uso de IA declarado pelos integrantes do grupo, conforme
   2. "Revise a documentação criada para a entrega de Engenharia de Software, aprimorando a clareza, a coesão textual, a padronização terminológica e a organização das seções, mantendo o conteúdo técnico original."
 - **Trechos ou entregas afetadas:** entrega de Engenharia de Software, especialmente na revisão e estruturação da documentação criada.
 
+## 6. Felipe Lázaro Mathey: Engenharia de Software
+
+- **Ferramenta utilizada:** ChatGPT (OpenAI).
+- **Versão/modelo:** GPT-6.
+- **Disciplina / trabalho:** Engenharia de Software.
+- **Finalidade de uso:** Apoio ao desenvolvimento do projeto, auxiliando na compreensão de conceitos técnicos, revisão da arquitetura de software, validação da lógica de processamento de dados e identificação de possíveis melhorias na implementação.
+- **Prompts principais utilizados:**
+  1. “Revisar a arquitetura em camadas do sistema e verificar se as responsabilidades de cada camada estão bem definidas.”
+  2. “Auxiliar na elaboração e revisão dos diagramas UML de casos de uso e atividades, identificando possíveis inconsistências nos fluxos.”
+- **Trechos ou entregas afetadas:** Entrega 2 de Engenharia de Software.
+
 ---
 
-## 6. Declaração
+## 7. Declaração
 
 Cada integrante declara, em sua ficha individual, que o uso descrito está em conformidade com o *Guia para o Uso Responsável de Inteligência Artificial na FECAP* e que o conteúdo final é de sua plena responsabilidade autoral.
